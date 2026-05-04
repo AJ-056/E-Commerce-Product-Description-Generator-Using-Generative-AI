@@ -13,7 +13,7 @@ export interface ProductInput {
 }
 
 export async function generateProductDescription(input: ProductInput): Promise<string> {
-  const platformPrompts = {
+  const platformPrompts: Record<string, string> = {
     amazon: "standard Amazon format with bullet points (features/benefits) and an SEO-optimized product title.",
     shopify: "compelling Shopify style with a hook, narrative description, and technical specs.",
     instagram: "engaging social media caption with emojis, hashtags, and a strong call-to-action.",
@@ -29,7 +29,7 @@ export async function generateProductDescription(input: ProductInput): Promise<s
     Tone of Voice: ${input.tone}
     ${input.customInstructions ? `Additional Directions/Keywords: ${input.customInstructions}` : ""}
     
-    Format target: ${platformPrompts[input.platform]}
+    Format target: ${platformPrompts[input.platform] || platformPrompts.common}
     
     Focus on benefits over features, use sensory language where appropriate, and ensure high scannability.
     Include a suggested SEO-optimized title at the top.
@@ -47,8 +47,8 @@ export async function generateProductDescription(input: ProductInput): Promise<s
     });
 
     return response.text || "Failed to generate description. Please try again.";
-  } catch (error) {
+  } catch (error: any) {
     console.error("Gemini API Error:", error);
-    throw new Error("Failed to generate description. Check your connection or API key.");
+    throw new Error(error.message || "Failed to generate description. Check your connection or API key.");
   }
 }
