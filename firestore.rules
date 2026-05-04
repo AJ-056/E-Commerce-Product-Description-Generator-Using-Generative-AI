@@ -1,0 +1,80 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Phase 3: Primitive Definition
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Phase 4: Validation Blueprints
+    function isValidUser(data) {
+      return data.keys().hasAll(['uid', 'email', 'createdAt']) &&
+             data.keys().size() <= 5 &&
+             data.uid == request.auth.uid &&
+             data.email is string && data.email.size() <= 256 &&
+             data.createdAt == request.time;
+    }
+
+    function isValidDescription(data) {
+      return data.keys().hasAll(['userId', 'name', 'features', 'content', 'createdAt']) &&
+             data.keys().size() <= 10 &&
+             data.userId == request.auth.uid &&
+             data.name is string && data.name.size() <= 200 &&
+             data.features is string && data.features.size() <= 5000 &&
+             data.content is string && data.content.size() <= 10000 &&
+             (data.get('tone', '') is string && data.get('tone', '').size() <= 50) &&
+             (data.get('platform', '') is string && data.get('platform', '').size() <= 50) &&
+             (data.get('customInstructions', '') is string && data.get('customInstructions', '').size() <= 1000) &&
+             (data.get('targetAudience', '') is string && data.get('targetAudience', '').size() <= 200) &&
+             (data.get('language', '') is string && data.get('language', '').size() <= 50) &&
+             data.createdAt == request.time;
+    }
+
+    // 1. User Profiles
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && 
+                      incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL']) &&
+                      incoming().uid == existing().uid &&
+                      incoming().email == existing().email;
+    }
+
+    // 2. Product Descriptions
+    match /descriptions/{descriptionId} {
+      // 8. Secure List Queries
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      allow create: if isSignedIn() && 
+                    isValidId(descriptionId) && 
+                    isValidDescription(incoming());
+      
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+      
+      // Updates are not expected for generated history, but if allowed:
+      allow update: if false; // Descriptions are immutable records of generation
+    }
+  }
+}

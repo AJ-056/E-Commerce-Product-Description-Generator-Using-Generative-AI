@@ -1,0 +1,45 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Description": {
+      "title": "Product Description",
+      "description": "A generated product description entry",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "name": { "type": "string" },
+        "features": { "type": "string" },
+        "targetAudience": { "type": "string" },
+        "tone": { "type": "string" },
+        "platform": { "type": "string" },
+        "customInstructions": { "type": "string" },
+        "language": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "name", "features", "content", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/descriptions/{descriptionId}": {
+      "schema": "Description",
+      "description": "Generated descriptions history"
+    }
+  }
+}
