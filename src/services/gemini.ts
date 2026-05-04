@@ -38,7 +38,7 @@ export async function generateProductDescription(input: ProductInput): Promise<s
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-1.5-flash",
+      model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
         temperature: 0.7,
@@ -50,13 +50,23 @@ export async function generateProductDescription(input: ProductInput): Promise<s
     if (!text) throw new Error("Empty response from AI");
     return text;
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
+    console.error("Gemini API Error Detail:", error);
+    
+    const errorMessage = error.message || "";
     
     // Check for quota exhaustion specifically
-    if (error.message?.includes("429") || error.message?.toLowerCase().includes("exhausted") || error.message?.includes("quota")) {
-      throw new Error("API Quota Reached: You've reached the free tier limit for the Gemini API. Please wait a minute and try again, or check your API key settings.");
+    if (errorMessage.includes("429") || errorMessage.toLowerCase().includes("exhausted") || errorMessage.includes("quota")) {
+      throw new Error("API Quota Reached: You've reached the free tier limit for the Gemini API. Please wait a minute and try again.");
     }
 
-    throw new Error(error.message || "Failed to generate description. Check your connection or API key.");
+    if (errorMessage.includes("404")) {
+      throw new Error("Model Configuration Error: The requested AI model was not found. Please try again later.");
+    }
+
+    if (errorMessage.includes("403")) {
+      throw new Error("API Permission Error: Check if your Gemini API key is valid and has the correct permissions.");
+    }
+
+    throw new Error(errorMessage || "Failed to generate description. Check your connection or API key.");
   }
 }
