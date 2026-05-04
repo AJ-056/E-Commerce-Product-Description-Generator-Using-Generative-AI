@@ -38,7 +38,7 @@ export async function generateProductDescription(input: ProductInput): Promise<s
 
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-1.5-flash",
       contents: prompt,
       config: {
         temperature: 0.7,
@@ -46,9 +46,17 @@ export async function generateProductDescription(input: ProductInput): Promise<s
       }
     });
 
-    return response.text || "Failed to generate description. Please try again.";
+    const text = response.text;
+    if (!text) throw new Error("Empty response from AI");
+    return text;
   } catch (error: any) {
     console.error("Gemini API Error:", error);
+    
+    // Check for quota exhaustion specifically
+    if (error.message?.includes("429") || error.message?.toLowerCase().includes("exhausted") || error.message?.includes("quota")) {
+      throw new Error("API Quota Reached: You've reached the free tier limit for the Gemini API. Please wait a minute and try again, or check your API key settings.");
+    }
+
     throw new Error(error.message || "Failed to generate description. Check your connection or API key.");
   }
 }
